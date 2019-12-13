@@ -16,9 +16,9 @@ import time
 # [Required] Script information
 #---------------------------------------
 ScriptName = "Raffle"
-Website = "https://www.twitch.tv/generalrommel"
+Website = "https://www.twitch.tv/generalpattonbs"
 Creator = "GeneralRommel"
-Version = "1.0"
+Version = "1.1"
 Description = "Raffle minigame"
 #---------------------------------------
 # Variables
@@ -51,6 +51,7 @@ class Settings:
             self.JoinMessage = "$user has joined the raffle."
             self.PermissionResp = "$user -> only $permission ($permissioninfo) and higher can use this command"
             self.RaffleTime = 30.0
+            self.AllowMultiJoin = False
 
     # Reload settings on save through UI
     def Reload(self, data):
@@ -180,6 +181,13 @@ def Execute(data):
             return
 
     if State == 1 and data.IsChatMessage() and data.GetParam(0).lower() == MySet.JoinCommand.lower():
+        # If multi-join is not allowed check to see if the user has already joined and return
+        if not MySet.AllowMultiJoin:
+            for ExistingPlayer in JoinedPlayers:
+                if ExistingPlayer.UserName.lower() == data.UserName.lower():
+                    return
+
+        # Append user to list of joined players
         JoinedPlayers.append(data)
         SendResp(data, MySet.Usage, MySet.JoinMessage)
         return
@@ -197,8 +205,8 @@ def PickWinner(data):
         SendResp(data, MySet.Usage, MySet.NoJoinResponse)
         return
 
-    secure_random = random.SystemRandom()
-    PickedPlayer = secure_random.choice(JoinedPlayers)
+    Random = random.WichmannHill()
+    PickedPlayer = Random.choice(JoinedPlayers)
     currency = Parent.GetCurrencyName()
     Parent.AddPoints(PickedPlayer.User, PickedPlayer.UserName, int(WinAmount))
     points = Parent.GetPoints(PickedPlayer.User)

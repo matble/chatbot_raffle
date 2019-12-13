@@ -7,6 +7,13 @@
     "tooltip": "Command is only active when stream is live",
     "group": "General"
   },
+  "AllowMultiJoin": {
+    "type": "checkbox",
+    "value": false,
+    "label": "Allow Multiple Joins",
+    "tooltip": "If enabled, users can join multiple times.",
+    "group": "General"
+  },
   "Command": {
     "type": "textbox",
     "value": "!raffle",
