@@ -120,6 +120,27 @@
     "tooltip": "Message sent when user doesn't select any valid wire. \r\n{0} = user \r\n{1} = permission\r\n{2} = permission info",
     "group": "Responses (All Modes)"
   },
+  "BadInputMessage": {
+    "type": "textbox",
+    "value": "Inputs to the command have to be numbers. Bad input given.",
+    "label": "Bad Input Response",
+    "tooltip": "Message sent when the input to the raffle is invalid (IE: Not numbers)",
+    "group": "Responses (All Modes)"
+  },
+  "MultiWinResponse": {
+    "type": "textbox",
+    "value": "{0} are the winners of the raffle! They each get {1} {2}.",
+    "label": "Multi-Winner Response",
+    "tooltip": "Message sent to the winer. \r\n{0} = winner list \r\n{1} = number of points\r\n{2} = currency name",
+    "group": "Responses (All Modes)"
+  },
+  "MultiNotEnoughEntryResponse": {
+    "type": "textbox",
+    "value": "Not enough players joined the raffle to have {0} winners. Defaulting to one winner.",
+    "label": "Not Enough Entries Response",
+    "tooltip": "Message sent when not enough players register for multiple winners. \r\n{0} = number of expected winners",
+    "group": "Responses (All Modes)"
+  },
   "BtnDefaults": {
     "type": "button",
     "label": "Restore Default Settings",

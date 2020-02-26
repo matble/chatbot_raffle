@@ -18,7 +18,7 @@ import time
 ScriptName = "Raffle"
 Website = "https://www.twitch.tv/generalpattonbs"
 Creator = "GeneralRommel"
-Version = "1.1"
+Version = "1.2"
 Description = "Raffle minigame"
 #---------------------------------------
 # Variables
@@ -39,17 +39,21 @@ class Settings:
                 self.__dict__ = json.load(f, encoding='utf-8-sig')
 
         else: #set variables if no custom settings file is found
-            self.OnlyLive = True
+            self.OnlyLive = False
             self.Command = "!raffle"
             self.JoinCommand = "!join"
             self.Permission = "Caster"
             self.PermissionInfo = ""
             self.Usage = "Stream Chat"
-            self.WinResponse = "{0} won {1} {3} and now has {2} {3} "
-            self.StartResponse = "A raffle for {0} {1} has started! Type !join to join."
+            self.BadInputMessage = "Inputs to the command have to be numbers. Bad input given."
+            self.WinResponse = "{0} won {1} {3} and now has {2} {3}."
+            self.MultiWinResponse = "{0} are the winners of the raffle! They each get {1} {2}."
+            self.MultiNotEnoughEntryResponse = "Not enough players joined the raffle to have {0} winners. " \
+                                               "Defaulting to one winner."
+            self.StartResponse = "A raffle for {0} {1} has started! There will be {2} winner(s). Type !join to join."
             self.NoJoinResponse = "Nobody joined the raffle so nobody wins, try again another day."
             self.JoinMessage = "$user has joined the raffle."
-            self.PermissionResp = "$user -> only $permission ($permissioninfo) and higher can use this command"
+            self.PermissionResp = "$user -> only $permission ($permissioninfo) and higher can use this command."
             self.RaffleTime = 30.0
             self.AllowMultiJoin = False
 
@@ -153,6 +157,9 @@ def Init():
     global WinAmount
     WinAmount = 0
 
+    global NumWinners
+    NumWinners = 1
+
     global StartTime
     StartTime = None
     global StartData
@@ -165,6 +172,7 @@ def Execute(data):
     global JoinedPlayers
     global StartTime
     global StartData
+    global NumWinners
 
     if State == 0 and data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
 
@@ -174,7 +182,23 @@ def Execute(data):
         if not MySet.OnlyLive or Parent.IsLive():
             State = 1
             WinAmount = data.GetParam(1)
-            message = MySet.StartResponse.format(WinAmount, Parent.GetCurrencyName())
+            NumWinners = data.GetParam(2)
+
+            try:
+                WinAmount = int(WinAmount)
+
+                # Default to 1 winner if not specified
+                if NumWinners == "":
+                    NumWinners = 1
+                else:
+                    NumWinners = int(NumWinners)
+            except ValueError:
+                State = 0
+                message = MySet.BadInputMessage.format()
+                SendResp(data, MySet.Usage, message)
+                return
+
+            message = MySet.StartResponse.format(WinAmount, Parent.GetCurrencyName(), NumWinners)
             SendResp(data, MySet.Usage, message)
             StartTime = time.time()
             StartData = data
@@ -198,6 +222,7 @@ def PickWinner(data):
     global JoinedPlayers
     global StartTime
     global WinAmount
+    global NumWinners
 
     State = 0
     StartTime = None
@@ -206,12 +231,35 @@ def PickWinner(data):
         return
 
     Random = random.WichmannHill()
-    PickedPlayer = Random.choice(JoinedPlayers)
+
+    # Check to see if there are enough people for multiple winners, if not go to 1 winner
+    if len(JoinedPlayers) < NumWinners:
+        notEnoughPlayersMessage = MySet.MultiNotEnoughEntryResponse.format(NumWinners)
+        NumWinners = 1
+        SendResp(data, MySet.Usage, notEnoughPlayersMessage)
+
+    # If there is one winner perform normal processing
     currency = Parent.GetCurrencyName()
-    Parent.AddPoints(PickedPlayer.User, PickedPlayer.UserName, int(WinAmount))
-    points = Parent.GetPoints(PickedPlayer.User)
-    winMessage = MySet.WinResponse.format(PickedPlayer.UserName, WinAmount, points, currency)
-    SendResp(data, MySet.Usage, winMessage)
+    if NumWinners == 1:
+        PickedPlayer = Random.choice(JoinedPlayers)
+        Parent.AddPoints(PickedPlayer.User, PickedPlayer.UserName, WinAmount)
+        points = Parent.GetPoints(PickedPlayer.User)
+        winMessage = MySet.WinResponse.format(PickedPlayer.UserName, WinAmount, points, currency)
+        SendResp(data, MySet.Usage, winMessage)
+    else:
+        winnersMessage = ""
+        winners = []
+        winAmountPerPlayer = WinAmount / NumWinners
+        for x in range(NumWinners):
+            PickedPlayer = Random.choice(JoinedPlayers)
+            winnersMessage = winnersMessage + PickedPlayer.UserName + ","
+            winners.append(PickedPlayer)
+            Parent.AddPoints(PickedPlayer.User, PickedPlayer.UserName, winAmountPerPlayer)
+            JoinedPlayers.remove(PickedPlayer)
+        winnersMessage = winnersMessage[:-1]
+        winMessage = MySet.MultiWinResponse.format(winnersMessage, winAmountPerPlayer, currency)
+        SendResp(data, MySet.Usage, winMessage)
+
     JoinedPlayers = []
     return
 
